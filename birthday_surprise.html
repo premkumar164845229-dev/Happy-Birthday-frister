@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A Surprise For You 🎉</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#2B1B4E;
+    --pink:#FF5C8A;
+    --yellow:#FFC93C;
+    --mint:#3FD6B0;
+    --sky:#4FB6FF;
+    --cream:#FFF6E9;
+    --purple-deep:#1F1339;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;
+    min-height:100%;
+    background:radial-gradient(circle at 50% 0%, #3A2465 0%, var(--purple-deep) 60%);
+    font-family:'Nunito', sans-serif;
+    color:var(--cream);
+    overflow-x:hidden;
+  }
+  .stage{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    text-align:center;
+    padding:32px 20px;
+    position:relative;
+  }
+  .screen{ display:none; flex-direction:column; align-items:center; gap:18px; z-index:2; width:100%; max-width:460px; }
+  .screen.active{ display:flex; animation:popIn 0.5s cubic-bezier(.26,1.6,.46,1) both; }
+  @keyframes popIn{
+    0%{ transform:scale(0.7); opacity:0; }
+    100%{ transform:scale(1); opacity:1; }
+  }
+
+  /* floating background balloons, decorative, non-interactive */
+  .bg-balloon{
+    position:fixed;
+    border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;
+    opacity:0.3;
+    animation:drift linear infinite;
+    z-index:0;
+    pointer-events:none;
+  }
+  @keyframes drift{
+    0%{ transform:translateY(110vh) translateX(0) rotate(0deg); }
+    100%{ transform:translateY(-20vh) translateX(30px) rotate(8deg); }
+  }
+  .bg-emoji{
+    position:fixed;
+    font-size:32px;
+    opacity:0.5;
+    animation:drift linear infinite;
+    z-index:0;
+    pointer-events:none;
+  }
+
+  .eyebrow{
+    font-family:'Baloo 2', sans-serif;
+    font-size:1.05rem;
+    color:var(--yellow);
+    margin:0;
+  }
+  .headline{
+    font-family:'Baloo 2', sans-serif;
+    font-weight:800;
+    font-size:clamp(1.7rem, 6vw, 2.5rem);
+    margin:0;
+    line-height:1.15;
+  }
+  .sub{
+    font-size:1.03rem;
+    max-width:380px;
+    color:#D9CFF2;
+    margin:0;
+  }
+
+  /* gift box */
+  .gift{
+    width:150px; height:140px; cursor:pointer; position:relative; margin-top:6px;
+    animation:wiggle 2.4s ease-in-out infinite; transform-origin:bottom center;
+  }
+  @keyframes wiggle{
+    0%,100%{ transform:rotate(0deg); }
+    50%{ transform:rotate(-3deg); }
+    75%{ transform:rotate(3deg); }
+  }
+  .gift .lid{ position:absolute; top:-22px; left:-8px; right:-8px; height:34px; background:var(--pink); border-radius:8px; }
+  .gift .box{ position:absolute; top:8px; left:0; right:0; bottom:0; background:#E14F79; border-radius:6px; }
+  .gift .ribbon-v{ position:absolute; top:-22px; bottom:0; left:50%; width:20px; margin-left:-10px; background:var(--yellow); }
+  .gift .ribbon-h{ position:absolute; top:2px; left:0; right:0; height:20px; background:var(--yellow); }
+  .gift .bow{ position:absolute; top:-40px; left:50%; transform:translateX(-50%); font-size:34px; }
+  .tap-hint{ font-family:'Baloo 2', sans-serif; font-size:0.95rem; color:var(--yellow); animation:pulse 1.8s ease-in-out infinite; }
+  @keyframes pulse{ 0%,100%{opacity:0.6;} 50%{opacity:1;} }
+
+  /* countdown */
+  .count-number{ font-family:'Baloo 2', sans-serif; font-weight:800; font-size:5rem; color:var(--yellow); line-height:1; }
+  .count-label{ font-size:1.03rem; color:#D9CFF2; }
+
+  /* reveal */
+  .cake{ font-size:60px; }
+  .name{ font-family:'Baloo 2', sans-serif; font-weight:800; font-size:clamp(1.9rem, 7vw, 2.8rem); color:var(--pink); margin:0; }
+  .msg-card{
+    background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12);
+    border-radius:18px; padding:24px 22px; font-size:1.03rem; line-height:1.6; color:var(--cream);
+  }
+  .msg-card em{ color:var(--yellow); font-style:normal; font-weight:700; }
+  .tags{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+  .tag{ font-family:'Baloo 2', sans-serif; background:var(--mint); color:var(--purple-deep); padding:6px 14px; border-radius:999px; font-size:0.9rem; font-weight:700; }
+
+  .next-btn{
+    font-family:'Baloo 2', sans-serif; font-weight:700; font-size:1rem;
+    background:var(--yellow); color:var(--purple-deep); border:none;
+    padding:13px 28px; border-radius:999px; cursor:pointer; margin-top:6px;
+  }
+  .next-btn:active{ transform:scale(0.97); }
+
+  /* balloon pop game */
+  .game-area{
+    position:relative; width:100%; max-width:400px; height:360px;
+    background:rgba(255,255,255,0.05); border-radius:20px; border:1px solid rgba(255,255,255,0.1);
+    overflow:hidden;
+  }
+  .pop-balloon{
+    position:absolute; bottom:-60px; width:52px; height:64px;
+    border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;
+    cursor:pointer; animation:rise linear forwards;
+    display:flex; align-items:flex-start; justify-content:center;
+  }
+  .pop-balloon::after{
+    content:''; position:absolute; bottom:-14px; left:50%; transform:translateX(-50%);
+    width:2px; height:14px; background:rgba(255,255,255,0.4);
+  }
+  @keyframes rise{
+    0%{ transform:translateY(0); }
+    100%{ transform:translateY(-420px); }
+  }
+  .game-status{ font-family:'Baloo 2', sans-serif; color:var(--yellow); font-size:1rem; }
+
+  /* reasons grid */
+  .reasons-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; width:100%; }
+  .reason-card{
+    position:relative; height:110px; border-radius:14px; cursor:pointer;
+    background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12);
+    display:flex; align-items:center; justify-content:center; padding:10px;
+    font-family:'Baloo 2', sans-serif; font-size:0.95rem; text-align:center;
+    transition:background 0.25s ease;
+  }
+  .reason-card.flipped{
+    background:var(--pink); color:var(--purple-deep); font-family:'Nunito', sans-serif; font-weight:700; font-size:0.85rem;
+  }
+  .reason-num{ color:var(--yellow); }
+
+  /* yes/no dodge question */
+  .question-card{
+    background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12);
+    border-radius:18px; padding:26px 22px; font-size:1.1rem; font-family:'Baloo 2', sans-serif;
+  }
+  .yn-row{
+    position:relative; display:flex; gap:20px; justify-content:center; margin-top:22px;
+    height:60px; width:100%;
+  }
+  .yn-btn{
+    font-family:'Baloo 2', sans-serif; font-weight:700; font-size:1rem;
+    padding:13px 26px; border-radius:999px; border:none; cursor:pointer;
+  }
+  .yes-btn{ background:var(--mint); color:var(--purple-deep); }
+  .no-btn{ background:transparent; color:var(--cream); border:2px solid rgba(255,255,255,0.3); position:absolute; }
+
+  /* final hidden message */
+  .final-heart{ font-size:56px; }
+
+  /* growing flower surprise */
+  .flower-stage{
+    width:100%; max-width:300px; aspect-ratio:1/1;
+    background:radial-gradient(circle at 50% 60%, #24184A 0%, var(--purple-deep) 70%);
+    border-radius:20px; border:1px solid rgba(255,255,255,0.1);
+  }
+  .flower-svg{ width:100%; height:100%; }
+  .stem{ stroke-dasharray:100; stroke-dashoffset:100; animation:drawStem 1.7s ease forwards; }
+  .stem-1{ animation-delay:0.1s; }
+  .stem-2, .stem-3{ animation-delay:0.4s; }
+  @keyframes drawStem{ to{ stroke-dashoffset:0; } }
+
+  .leaf{ opacity:0; transform-box:fill-box; transform-origin:center; animation:leafIn 0.7s ease forwards; }
+  .leaf-1{ animation-delay:0.7s; }
+  .leaf-2{ animation-delay:0.9s; }
+  .leaf-3{ animation-delay:1.1s; }
+  .leaf-4{ animation-delay:1.3s; }
+  @keyframes leafIn{ from{ opacity:0; transform:scale(0.3); } to{ opacity:0.95; transform:scale(1); } }
+
+  .flower{ opacity:0; transform-box:fill-box; transform-origin:center; animation:bloom 0.8s cubic-bezier(.34,1.56,.64,1) forwards; }
+  .flower-1{ animation-delay:1.7s; }
+  .flower-2, .flower-3{ animation-delay:2.0s; }
+  @keyframes bloom{ to{ opacity:1; transform:scale(1); } }
+
+  .firefly{ opacity:0; animation:twinkle 3s ease-in-out infinite; }
+  .firefly:nth-of-type(1){ animation-delay:2.4s; }
+  .firefly:nth-of-type(2){ animation-delay:2.9s; }
+  .firefly:nth-of-type(3){ animation-delay:3.3s; }
+  .firefly:nth-of-type(4){ animation-delay:2.6s; }
+  .firefly:nth-of-type(5){ animation-delay:3.6s; }
+  .firefly:nth-of-type(6){ animation-delay:3.0s; }
+  @keyframes twinkle{ 0%,100%{ opacity:0; } 50%{ opacity:1; } }
+
+  canvas#confetti{ position:fixed; inset:0; pointer-events:none; z-index:5; }
+
+  @media (prefers-reduced-motion: reduce){
+    .bg-balloon, .gift, .tap-hint{ animation:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+
+  <div class="bg-balloon" style="left:8%; width:46px; height:56px; background:var(--pink); animation-duration:14s;"></div>
+  <div class="bg-balloon" style="left:22%; width:34px; height:42px; background:var(--sky); animation-duration:11s; animation-delay:2s;"></div>
+  <div class="bg-balloon" style="left:78%; width:50px; height:60px; background:var(--yellow); animation-duration:16s; animation-delay:1s;"></div>
+  <div class="bg-balloon" style="left:88%; width:30px; height:38px; background:var(--mint); animation-duration:9s; animation-delay:3.5s;"></div>
+  <div class="bg-balloon" style="left:50%; width:40px; height:48px; background:var(--pink); animation-duration:13s; animation-delay:5s;"></div>
+  <div class="bg-emoji" style="left:14%; animation-duration:15s; animation-delay:1.5s;">🧸</div>
+  <div class="bg-emoji" style="left:63%; animation-duration:12s; animation-delay:4s;">🧸</div>
+  <div class="bg-emoji" style="left:35%; animation-duration:17s; animation-delay:6.5s;">🧸</div>
+
+  <!-- 1: gift box -->
+  <div class="screen active" id="screen-gift">
+    <p class="eyebrow">psst... this one's for you</p>
+    <h1 class="headline">Someone hid a birthday surprise in here 🎈</h1>
+    <p class="sub">Go on, give it a tap. It won't bite (probably).</p>
+    <div class="gift" id="giftBox" role="button" aria-label="Open your surprise" tabindex="0">
+      <div class="bow">🎀</div>
+      <div class="lid"></div>
+      <div class="box"></div>
+      <div class="ribbon-v"></div>
+      <div class="ribbon-h"></div>
+    </div>
+    <p class="tap-hint">tap the gift to open</p>
+  </div>
+
+  <!-- 2: countdown -->
+  <div class="screen" id="screen-count">
+    <p class="eyebrow">okay okay, hold on...</p>
+    <div class="count-number" id="countNum">3</div>
+    <p class="count-label">unwrapping your surprise</p>
+  </div>
+
+  <!-- 3: reveal -->
+  <div class="screen" id="screen-reveal">
+    <div class="cake">🎂</div>
+    <h2 class="name">Happy Birthday, Frister!</h2>
+    <div class="msg-card">
+      Not many people get to be both a <em>best friend</em> and a <em>sister</em> at the same time —
+      but somehow that's exactly what you are. Hope today is full of <em>cake</em>, <em>chaos</em>,
+      and zero adulting responsibilities. Here's to more laughs, more plans that never happen,
+      and more birthdays just like this one, Frister.
+    </div>
+    <div class="tags">
+      <span class="tag">🎁 loved</span>
+      <span class="tag">🥳 celebrated</span>
+      <span class="tag">🧸 cherished</span>
+    </div>
+    <button class="next-btn" onclick="goTo('screen-game')">wait, there's more →</button>
+  </div>
+
+  <!-- 4: balloon pop game -->
+  <div class="screen" id="screen-game">
+    <p class="eyebrow">one tiny challenge first</p>
+    <h2 class="headline" style="font-size:1.5rem;">Pop all the teddy balloons 🧸</h2>
+    <p class="game-status" id="gameStatus">0 / 8 rescued</p>
+    <div class="game-area" id="gameArea"></div>
+    <p id="skipLink" style="display:none; font-size:0.85rem; color:#D9CFF2; cursor:pointer; text-decoration:underline;" onclick="goTo('screen-reasons')">balloons being stubborn? skip ahead</p>
+  </div>
+
+  <!-- 5: reasons list -->
+  <div class="screen" id="screen-reasons">
+    <p class="eyebrow">nice job! now tap each card</p>
+    <h2 class="headline" style="font-size:1.5rem;">A few reasons, off the top of my head</h2>
+    <div class="reasons-grid" id="reasonsGrid"></div>
+    <button class="next-btn" id="reasonsNextBtn" style="display:none;" onclick="goTo('screen-question')">one more thing →</button>
+  </div>
+
+  <!-- 6: yes/no dodge question -->
+  <div class="screen" id="screen-question">
+    <p class="eyebrow">last thing, promise</p>
+    <div class="question-card">Do you promise to have the best birthday ever?</div>
+    <div class="yn-row">
+      <button class="yn-btn yes-btn" id="yesBtn" onclick="goTo('screen-flower')">Yes 🥹</button>
+      <button class="yn-btn no-btn" id="noBtn">No</button>
+    </div>
+  </div>
+
+  <!-- 6b: glowing flower growing -->
+  <div class="screen" id="screen-flower">
+    <p class="eyebrow">something's growing...</p>
+    <div class="flower-stage">
+      <svg viewBox="0 0 300 300" class="flower-svg" id="flowerSvg">
+        <defs>
+          <radialGradient id="petalGrad" cx="50%" cy="80%" r="80%">
+            <stop offset="0%" stop-color="#FFFFFF"/>
+            <stop offset="55%" stop-color="#BFFFEF"/>
+            <stop offset="100%" stop-color="#3FD6B0"/>
+          </radialGradient>
+          <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+            <feGaussianBlur stdDeviation="4.2" result="blur"/>
+            <feMerge>
+              <feMergeNode in="blur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+
+        <g filter="url(#glow)">
+          <!-- leaves -->
+          <ellipse class="leaf leaf-1" cx="130" cy="230" rx="16" ry="8" fill="#2FBE9A" transform="rotate(-25 130 230)"/>
+          <ellipse class="leaf leaf-2" cx="170" cy="210" rx="16" ry="8" fill="#2FBE9A" transform="rotate(25 170 210)"/>
+          <ellipse class="leaf leaf-3" cx="120" cy="180" rx="14" ry="7" fill="#2FBE9A" transform="rotate(-30 120 180)"/>
+          <ellipse class="leaf leaf-4" cx="180" cy="160" rx="14" ry="7" fill="#2FBE9A" transform="rotate(30 180 160)"/>
+
+          <!-- stems -->
+          <path class="stem stem-1" d="M150 270 L150 100" stroke="#3FD6B0" stroke-width="4" fill="none" stroke-linecap="round" pathLength="100"/>
+          <path class="stem stem-2" d="M150 230 L95 90" stroke="#3FD6B0" stroke-width="4" fill="none" stroke-linecap="round" pathLength="100"/>
+          <path class="stem stem-3" d="M150 230 L205 90" stroke="#3FD6B0" stroke-width="4" fill="none" stroke-linecap="round" pathLength="100"/>
+
+          <!-- flower heads -->
+          <g transform="translate(150,92)">
+            <g class="flower flower-1">
+              <ellipse class="petal" cx="0" cy="-18" rx="10" ry="16" fill="url(#petalGrad)"/>
+              <ellipse class="petal" cx="0" cy="-18" rx="10" ry="16" fill="url(#petalGrad)" transform="rotate(72)"/>
+              <ellipse class="petal" cx="0" cy="-18" rx="10" ry="16" fill="url(#petalGrad)" transform="rotate(144)"/>
+              <ellipse class="petal" cx="0" cy="-18" rx="10" ry="16" fill="url(#petalGrad)" transform="rotate(216)"/>
+              <ellipse class="petal" cx="0" cy="-18" rx="10" ry="16" fill="url(#petalGrad)" transform="rotate(288)"/>
+              <circle cx="0" cy="0" r="6" fill="#FFC93C"/>
+            </g>
+          </g>
+          <g transform="translate(95,82)">
+            <g class="flower flower-2">
+              <ellipse class="petal" cx="0" cy="-14" rx="8" ry="13" fill="url(#petalGrad)"/>
+              <ellipse class="petal" cx="0" cy="-14" rx="8" ry="13" fill="url(#petalGrad)" transform="rotate(72)"/>
+              <ellipse class="petal" cx="0" cy="-14" rx="8" ry="13" fill="url(#petalGrad)" transform="rotate(144)"/>
+              <ellipse class="petal" cx="0" cy="-14" rx="8" ry="13" fill="url(#petalGrad)" transform="rotate(216)"/>
+              <ellipse class="petal" cx="0" cy="-14" rx="8" ry="13" fill="url(#petalGrad)" transform="rotate(288)"/>
+              <circle cx="0" cy="0" r="5" fill="#FFC93C"/>
+            </g>
+          </g>
+          <g transform="translate(205,82)">
+            <g class="flower flower-3">
+              <ellipse class="petal" cx="0" cy="-14" rx="8" ry="13" fill="url(#petalGrad)"/>
+              <ellipse class="petal" cx="0" cy="-14" rx="8" ry="13" fill="url(#petalGrad)" transform="rotate(72)"/>
+              <ellipse class="petal" cx="0" cy="-14" rx="8" ry="13" fill="url(#petalGrad)" transform="rotate(144)"/>
+              <ellipse class="petal" cx="0" cy="-14" rx="8" ry="13" fill="url(#petalGrad)" transform="rotate(216)"/>
+              <ellipse class="petal" cx="0" cy="-14" rx="8" ry="13" fill="url(#petalGrad)" transform="rotate(288)"/>
+              <circle cx="0" cy="0" r="5" fill="#FFC93C"/>
+            </g>
+          </g>
+        </g>
+
+        <!-- fireflies -->
+        <circle class="firefly" cx="60" cy="120" r="2.4" fill="#FFE9A8"/>
+        <circle class="firefly" cx="230" cy="150" r="2" fill="#FFE9A8"/>
+        <circle class="firefly" cx="80" cy="60" r="2.2" fill="#FFE9A8"/>
+        <circle class="firefly" cx="220" cy="70" r="2" fill="#FFE9A8"/>
+        <circle class="firefly" cx="150" cy="40" r="2.4" fill="#FFE9A8"/>
+        <circle class="firefly" cx="110" cy="240" r="2" fill="#FFE9A8"/>
+      </svg>
+    </div>
+    <p class="sub">grown one petal at a time, just like this year of you.</p>
+    <button class="next-btn" onclick="goTo('screen-final')">see the last surprise →</button>
+  </div>
+
+  <!-- 7: final hidden message -->
+  <div class="screen" id="screen-final">
+    <div class="final-heart">💌</div>
+    <h2 class="name" style="font-size:1.8rem;">okay, one real secret...</h2>
+    <div class="msg-card">
+      All the games aside — I just wanted an excuse to make you smile today.
+      You deserve way more than a silly website, but happy birthday anyway.
+      Go eat your cake. I mean it. 🎂💛
+    </div>
+  </div>
+
+</div>
+
+<canvas id="confetti"></canvas>
+
+<script>
+  function goTo(id){
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    if(id === 'screen-game') startGame();
+    if(id === 'screen-reasons') buildReasons();
+    if(id === 'screen-question') setupQuestion();
+    if(id === 'screen-final') burstConfetti();
+  }
+
+  // --- STEP 1 -> 2 -> 3 ---
+  const giftBox = document.getElementById('giftBox');
+  function openGift(){
+    goTo('screen-count');
+    let n = 3;
+    document.getElementById('countNum').textContent = n;
+    const timer = setInterval(() => {
+      n -= 1;
+      if(n > 0){
+        document.getElementById('countNum').textContent = n;
+      } else {
+        clearInterval(timer);
+        goTo('screen-reveal');
+        burstConfetti();
+      }
+    }, 700);
+  }
+  giftBox.addEventListener('click', openGift);
+  giftBox.addEventListener('keydown', (e) => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openGift(); } });
+
+  // --- STEP 4: balloon pop game ---
+  const balloonColors = ['#FF5C8A', '#FFC93C', '#3FD6B0', '#4FB6FF'];
+  let popped = 0;
+  const totalBalloons = 8;
+  let gameStarted = false;
+
+  function startGame(){
+    if(gameStarted) return;
+    gameStarted = true;
+    const area = document.getElementById('gameArea');
+    area.innerHTML = '';
+    popped = 0;
+    document.getElementById('gameStatus').textContent = `0 / ${totalBalloons} rescued`;
+    for(let i=0; i<totalBalloons; i++){
+      spawnBalloon(area, i);
+    }
+    setTimeout(() => {
+      const link = document.getElementById('skipLink');
+      if(popped < totalBalloons) link.style.display = 'block';
+    }, 12000);
+  }
+
+  function spawnBalloon(area, i){
+    const b = document.createElement('div');
+    b.className = 'pop-balloon';
+    b.style.left = (10 + Math.random()*75) + '%';
+    b.style.background = balloonColors[i % balloonColors.length];
+    b.style.fontSize = '26px';
+    b.textContent = '🧸';
+    const duration = 5 + Math.random()*3;
+    b.style.animationDuration = duration + 's';
+    b.style.animationDelay = (Math.random()*1.2) + 's';
+    b.addEventListener('click', () => popOne(b));
+    b.addEventListener('animationend', () => {
+      if(b.parentNode) b.remove();
+      // missed balloon floats away unpopped -> send up a replacement so she's never short
+      if(!b.dataset.popped && popped < totalBalloons){
+        spawnBalloon(area, i);
+      }
+    });
+    area.appendChild(b);
+  }
+
+  function popOne(b){
+    if(b.dataset.popped) return;
+    b.dataset.popped = '1';
+    b.style.transition = 'transform 0.15s ease, opacity 0.15s ease';
+    b.style.transform += ' scale(1.4)';
+    b.style.opacity = '0';
+    popped += 1;
+    document.getElementById('gameStatus').textContent = `${popped} / ${totalBalloons} rescued`;
+    setTimeout(() => { if(b.parentNode) b.remove(); }, 150);
+    if(popped >= totalBalloons){
+      setTimeout(() => goTo('screen-reasons'), 500);
+    }
+  }
+
+  // --- STEP 5: reasons grid ---
+  const reasons = [
+    "You make ordinary days feel less boring.",
+    "Your laugh is genuinely contagious.",
+    "You remember the tiny details other people forget.",
+    "You always show up when it counts.",
+    "Being around you is just... easy.",
+    "You're weirdly good at cheering people up."
+  ];
+  let reasonsFlipped = 0;
+  let reasonsBuilt = false;
+
+  function buildReasons(){
+    if(reasonsBuilt) return;
+    reasonsBuilt = true;
+    const grid = document.getElementById('reasonsGrid');
+    grid.innerHTML = '';
+    reasons.forEach((text, i) => {
+      const card = document.createElement('div');
+      card.className = 'reason-card';
+      card.innerHTML = `<span class="reason-num">tap #${i+1}</span>`;
+      card.addEventListener('click', () => {
+        if(card.classList.contains('flipped')) return;
+        card.classList.add('flipped');
+        card.textContent = text;
+        reasonsFlipped += 1;
+        if(reasonsFlipped >= reasons.length){
+          document.getElementById('reasonsNextBtn').style.display = 'inline-block';
+        }
+      });
+      grid.appendChild(card);
+    });
+  }
+
+  // --- STEP 6: dodging "No" button ---
+  let questionSetup = false;
+  function setupQuestion(){
+    if(questionSetup) return;
+    questionSetup = true;
+    const row = document.getElementById('yn-row') || document.querySelector('.yn-row');
+    const noBtn = document.getElementById('noBtn');
+    function dodge(){
+      const rowRect = row.getBoundingClientRect();
+      const maxX = Math.max(rowRect.width - noBtn.offsetWidth - 10, 10);
+      const maxY = Math.max(rowRect.height - noBtn.offsetHeight - 10, 10);
+      const x = Math.random() * maxX;
+      const y = Math.random() * maxY;
+      noBtn.style.left = x + 'px';
+      noBtn.style.top = y + 'px';
+    }
+    noBtn.addEventListener('mouseenter', dodge);
+    noBtn.addEventListener('touchstart', (e) => { e.preventDefault(); dodge(); }, {passive:false});
+    noBtn.addEventListener('click', (e) => { e.preventDefault(); dodge(); });
+  }
+
+  // --- confetti ---
+  const canvas = document.getElementById('confetti');
+  const ctx = canvas.getContext('2d');
+  function resize(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+  resize();
+  window.addEventListener('resize', resize);
+  const confettiColors = ['#FF5C8A', '#FFC93C', '#3FD6B0', '#4FB6FF'];
+  let particles = [];
+
+  function burstConfetti(){
+    particles = [];
+    const count = 140;
+    for(let i=0; i<count; i++){
+      particles.push({
+        x: canvas.width/2, y: canvas.height*0.35,
+        vx: (Math.random()-0.5) * 14, vy: (Math.random()-1.3) * 14,
+        size: 5 + Math.random()*5, color: confettiColors[Math.floor(Math.random()*confettiColors.length)],
+        rot: Math.random()*360, vrot: (Math.random()-0.5) * 12, life: 0
+      });
+    }
+    requestAnimationFrame(animateConfetti);
+  }
+  function animateConfetti(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    let alive = false;
+    particles.forEach(p => {
+      p.vy += 0.35; p.x += p.vx; p.y += p.vy; p.rot += p.vrot; p.life += 1;
+      if(p.y < canvas.height + 20 && p.life < 260){
+        alive = true;
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot * Math.PI/180);
+        ctx.fillStyle = p.color; ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size*0.6);
+        ctx.restore();
+      }
+    });
+    if(alive){ requestAnimationFrame(animateConfetti); } else { ctx.clearRect(0,0,canvas.width,canvas.height); }
+  }
+</script>
+
+</body>
+</html>
